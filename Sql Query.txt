@@ -1,0 +1,94 @@
+-- Find the 5 oldest users of the Instagram from the database provided --
+SELECT 
+    id, username, created_at
+FROM
+    ig_clone.users
+ORDER BY created_at
+LIMIT 5;
+
+-- Find the users who have never posted a single photo on Instagram --
+SELECT 
+    username
+FROM
+    users
+WHERE
+    id NOT IN (SELECT 
+            user_id
+        FROM
+            ig_clone.photos);
+            
+-- Identify the winner of the contest and provide their details to the team --
+with cte as
+     (SELECT 
+    likes.Photo_id,
+    users.username,
+    COUNT(likes.user_id) AS like_user
+FROM
+    ig_clone.likes likes
+ inner join
+ ig_clone.photos photos on likes.photo_id = photos.id
+ inner join
+ ig_clone.users on photos.user_id = users.id
+ group by likes.Photo_ID,
+ users.username order by like_user desc limit 1)
+SELECT username FROM cte;
+
+-- Identify and suggest the top 5 most commonly used hashtags on the platform --
+SELECT 
+    t.tag_name, COUNT(p.photo_id) AS num_tags
+FROM
+    ig_clone.photo_tags p
+        INNER JOIN
+    ig_clone.tags t ON p.tag_id = t.id
+GROUP BY tag_name
+ORDER BY num_tags DESC
+LIMIT 5;
+
+-- What day of the week do most users register on? Provide insights on when to schedule an ad campaign --
+SELECT 
+    id,
+    username,
+    created_at,
+    DAYNAME(created_at) AS week_day,
+    COUNT(*) AS total_count
+FROM
+    ig_clone.users
+GROUP BY week_day
+ORDER BY total_count DESC;
+
+-- Provide how many times does average user posts on Instagram. Also, provide the total number of 
+-- photos on Instagram/total number of users --
+with cte as (
+       SELECT 
+    u.id AS userid, COUNT(p.id) AS photoid
+FROM
+    ig_clone.users u
+       left join
+       ig_clone.photos p on u.id = p.user_id
+       group by u.id)
+       SELECT 
+    SUM(photoid) AS total_photos,
+    COUNT(userid) AS total_users,
+    SUM(photoid) / COUNT(userid) AS photo_per_user
+FROM
+    cte;
+
+-- Bots & Fake Accounts: Provide data on users (bots) who have liked every single photo on the site 
+-- (since any normal user would not be able to do this).
+with photo_count as (
+            SELECT 
+    user_id, COUNT(photo_id) AS num_like
+FROM
+    ig_clone.likes
+GROUP BY user_id
+ORDER BY num_like DESC)
+            SELECT 
+    *
+FROM
+    photo_count
+WHERE
+    num_like = 
+            (SELECT 
+    COUNT(*)
+FROM
+    ig_clone.photos);
